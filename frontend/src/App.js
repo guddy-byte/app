@@ -442,10 +442,63 @@ const Dashboard = () => {
   );
 };
 
+// Course Card Component
+const CourseCard = ({ course }) => {
+  const [showTest, setShowTest] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+
+  const handleStartTest = () => {
+    if (!course.is_free) {
+      setShowPayment(true);
+    } else {
+      setShowTest(true);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    setShowTest(true);
+  };
+
+  if (showPayment) {
+    return (
+      <PaymentInterface
+        course={course}
+        onPaymentSuccess={handlePaymentSuccess}
+        onCancel={() => setShowPayment(false)}
+      />
+    );
+  }
+
+  if (showTest) {
+    return <TestInterface course={course} onBack={() => setShowTest(false)} />;
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-semibold text-gray-800">{course.title}</h3>
+        {!course.is_free && (
+          <span className="text-red-600 font-bold">₦{course.price}</span>
+        )}
+      </div>
+      <p className="text-gray-600 text-sm mb-3">{course.description}</p>
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-gray-500">{course.total_questions} questions</span>
+        <button
+          onClick={handleStartTest}
+          className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900 transition-colors text-sm"
+        >
+          {course.is_free ? 'Start Test' : 'Pay & Start Test'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Payment Integration Component
 const PaymentInterface = ({ course, onPaymentSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [paymentData, setPaymentData] = useState(null);
 
   const handlePayment = async () => {
     setLoading(true);
@@ -534,28 +587,6 @@ const PaymentInterface = ({ course, onPaymentSuccess, onCancel }) => {
         <div className="mt-4 text-xs text-gray-500 text-center">
           Powered by Paystack • Secure • Encrypted
         </div>
-      </div>
-    </div>
-  );
-};
-
-  return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-gray-800">{course.title}</h3>
-        {!course.is_free && (
-          <span className="text-red-600 font-bold">₦{course.price}</span>
-        )}
-      </div>
-      <p className="text-gray-600 text-sm mb-3">{course.description}</p>
-      <div className="flex justify-between items-center">
-        <span className="text-xs text-gray-500">{course.total_questions} questions</span>
-        <button
-          onClick={handleStartTest}
-          className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900 transition-colors text-sm"
-        >
-          Start Test
-        </button>
       </div>
     </div>
   );
