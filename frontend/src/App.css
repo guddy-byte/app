@@ -1,38 +1,400 @@
 .App {
-    text-align: center;
+  text-align: center;
 }
 
 .App-logo {
-    height: 40vmin;
-    pointer-events: none;
+  height: 40vmin;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
 }
 
 .App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
 }
 
 .App-link {
-    color: #61dafb;
+  color: #61dafb;
 }
 
 @keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom Wine/Red Color Theme */
+.wine-gradient {
+  background: linear-gradient(135deg, #722f37, #8b1538, #a91b60);
+}
+
+.wine-primary {
+  background-color: #722f37;
+}
+
+.wine-primary:hover {
+  background-color: #5a252b;
+}
+
+.wine-secondary {
+  background-color: #8b1538;
+}
+
+.wine-accent {
+  background-color: #a91b60;
+}
+
+.wine-text {
+  color: #722f37;
+}
+
+.wine-border {
+  border-color: #722f37;
+}
+
+/* Test Interface Styles */
+.question-container {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Score Display Styles */
+.score-display {
+  animation: popIn 0.5s ease-out;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Progress Bar Animation */
+.progress-bar {
+  transition: width 0.3s ease-in-out;
+}
+
+/* Card Hover Effects */
+.course-card {
+  transition: all 0.3s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(114, 47, 55, 0.15);
+}
+
+/* Button Animations */
+.btn-animate {
+  transition: all 0.2s ease;
+}
+
+.btn-animate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #722f37;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Form Styles */
+.form-input {
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(114, 47, 55, 0.15);
+}
+
+/* Alert Animations */
+.alert-slide-in {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Print Styles for Results */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  .score-display {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .App-header {
+    font-size: calc(8px + 2vmin);
+    padding: 15px;
+  }
+  
+  .course-card {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Typography */
+.heading-wine {
+  color: #722f37;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.text-wine-light {
+  color: #8b1538;
+}
+
+/* Background Patterns */
+.pattern-dots {
+  background-image: radial-gradient(circle, #722f37 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #722f37;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a252b;
+}
+
+/* Radio Button Custom Styling */
+input[type="radio"] {
+  accent-color: #722f37;
+}
+
+/* Table Styles */
+.table-wine thead {
+  background-color: #722f37;
+  color: white;
+}
+
+.table-wine tbody tr:nth-child(even) {
+  background-color: #faf5f5;
+}
+
+.table-wine tbody tr:hover {
+  background-color: #f5e6e6;
+}
+
+/* Success/Error States */
+.success-state {
+  color: #059669;
+  background-color: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.error-state {
+  color: #dc2626;
+  background-color: #fee2e2;
+  border-color: #fecaca;
+}
+
+/* File Upload Styling */
+.file-upload {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.file-upload input[type=file] {
+  position: absolute;
+  left: -9999px;
+}
+
+/* Badge Styles */
+.badge-free {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-paid {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-admin {
+  background-color: #ddd6fe;
+  color: #5b21b6;
+}
+
+/* Logo Animation */
+.logo-bounce {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Glassmorphism Effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Custom Shadows */
+.shadow-wine {
+  box-shadow: 0 10px 25px rgba(114, 47, 55, 0.15);
+}
+
+.shadow-wine-lg {
+  box-shadow: 0 20px 40px rgba(114, 47, 55, 0.15);
+}
+
+/* Navigation Dots for Test */
+.nav-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.nav-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-dot.active {
+  background-color: #722f37;
+  transform: scale(1.2);
+}
+
+.nav-dot.answered {
+  background-color: #059669;
+}
+
+/* Test Timer */
+.timer-warning {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Confetti Animation for Success */
+.confetti {
+  position: relative;
+  overflow: hidden;
+}
+
+.confetti::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle, #722f37 2px, transparent 2px),
+    radial-gradient(circle, #8b1538 2px, transparent 2px),
+    radial-gradient(circle, #a91b60 2px, transparent 2px);
+  background-size: 50px 50px, 70px 70px, 90px 90px;
+  background-position: 0 0, 25px 25px, 50px 50px;
+  animation: confetti-fall 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
