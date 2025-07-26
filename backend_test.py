@@ -389,8 +389,7 @@ class CBTBackendTester:
         try:
             # Test payment initialization for a course
             response = self.session.post(
-                f"{self.base_url}/payments/initialize",
-                json={"course_id": self.test_course_id},
+                f"{self.base_url}/payments/initialize?course_id={self.test_course_id}",
                 headers=headers
             )
             
