@@ -511,6 +511,267 @@ class CBTBackendTester:
         except Exception as e:
             self.log_result("cbt_system", "User Attempts Retrieval", False, f"Exception: {str(e)}")
     
+    def test_enhanced_pdf_parsing(self):
+        """Test enhanced PDF parsing with GST104.pdf specifically"""
+        print("\n=== Testing Enhanced PDF Parsing ===")
+        
+        if not self.admin_token:
+            self.log_result("course_management", "Enhanced PDF Parsing", False, "No admin token available")
+            return
+        
+        pdf_path = "/app/GST104.pdf"
+        if not os.path.exists(pdf_path):
+            self.log_result("course_management", "Enhanced PDF Parsing", False, "GST104.pdf not found")
+            return
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        
+        # Test enhanced parsing with GST104.pdf
+        form_data = {
+            "title": "Enhanced GST 104 - PDF Parsing Test",
+            "description": "Testing enhanced PDF parsing capabilities with deduplication",
+            "is_free": "true",
+            "price": "0.0"
+        }
+        
+        try:
+            with open(pdf_path, 'rb') as pdf_file:
+                files = {"pdf_file": ("GST104.pdf", pdf_file, "application/pdf")}
+                
+                response = self.session.post(
+                    f"{self.base_url}/admin/courses/upload",
+                    data=form_data,
+                    files=files,
+                    headers=headers
+                )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "course_id" in data and "questions_extracted" in data:
+                    questions_count = data["questions_extracted"]
+                    # Enhanced parsing should extract more questions (expecting 30+ from GST104.pdf)
+                    if questions_count >= 20:
+                        self.log_result("course_management", "Enhanced PDF Parsing", True, 
+                                      f"Enhanced parsing extracted {questions_count} questions (good extraction rate)")
+                        # Store this course ID for deletion testing
+                        self.enhanced_course_id = data["course_id"]
+                    else:
+                        self.log_result("course_management", "Enhanced PDF Parsing", False, 
+                                      f"Only extracted {questions_count} questions, expected more from enhanced parsing")
+                else:
+                    self.log_result("course_management", "Enhanced PDF Parsing", False, 
+                                  "Missing course_id or questions_extracted in response")
+            else:
+                self.log_result("course_management", "Enhanced PDF Parsing", False, 
+                              f"Status: {response.status_code}, Response: {response.text}")
+        
+        except Exception as e:
+            self.log_result("course_management", "Enhanced PDF Parsing", False, f"Exception: {str(e)}")
+    
+    def test_course_deletion_system(self):
+        """Test course deletion and cascading data cleanup"""
+        print("\n=== Testing Course Deletion System ===")
+        
+        if not self.admin_token:
+            self.log_result("course_management", "Course Deletion", False, "No admin token available")
+            return
+        
+        # First create a test course for deletion
+        if not hasattr(self, 'enhanced_course_id') or not self.enhanced_course_id:
+            self.log_result("course_management", "Course Deletion", False, "No test course available for deletion")
+            return
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        course_id = self.enhanced_course_id
+        
+        # First, create some test data associated with this course
+        # Create a test attempt for this course
+        if self.user_token:
+            user_headers = {"Authorization": f"Bearer {self.user_token}"}
+            try:
+                # Get course questions first
+                course_response = self.session.get(f"{self.base_url}/courses/{course_id}", headers=user_headers)
+                if course_response.status_code == 200:
+                    course_data = course_response.json()
+                    questions = course_data.get("questions", [])
+                    
+                    if questions:
+                        # Create sample answers
+                        answers = {q["id"]: 0 for q in questions[:5]}  # Answer first 5 questions
+                        
+                        # Submit test attempt
+                        self.session.post(
+                            f"{self.base_url}/courses/{course_id}/attempt",
+                            json=answers,
+                            headers=user_headers
+                        )
+            except:
+                pass  # Continue with deletion test even if attempt creation fails
+        
+        # Test course deletion
+        try:
+            response = self.session.delete(f"{self.base_url}/admin/courses/{course_id}", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "message" in data and "course_title" in data:
+                    attempts_deleted = data.get("attempts_deleted", 0)
+                    payments_deleted = data.get("payments_deleted", 0)
+                    
+                    self.log_result("course_management", "Course Deletion", True, 
+                                  f"Course '{data['course_title']}' deleted successfully. "
+                                  f"Attempts deleted: {attempts_deleted}, Payments deleted: {payments_deleted}")
+                else:
+                    self.log_result("course_management", "Course Deletion", False, 
+                                  "Missing expected fields in deletion response")
+            else:
+                self.log_result("course_management", "Course Deletion", False, 
+                              f"Status: {response.status_code}, Response: {response.text}")
+        
+        except Exception as e:
+            self.log_result("course_management", "Course Deletion", False, f"Exception: {str(e)}")
+        
+        # Test deletion of non-existent course
+        try:
+            fake_course_id = "non-existent-course-id"
+            response = self.session.delete(f"{self.base_url}/admin/courses/{fake_course_id}", headers=headers)
+            
+            if response.status_code == 404:
+                self.log_result("course_management", "Non-existent Course Deletion", True, 
+                              "Correctly returned 404 for non-existent course")
+            else:
+                self.log_result("course_management", "Non-existent Course Deletion", False, 
+                              f"Should return 404 for non-existent course, got: {response.status_code}")
+        
+        except Exception as e:
+            self.log_result("course_management", "Non-existent Course Deletion", False, f"Exception: {str(e)}")
+        
+        # Test unauthorized deletion (non-admin user)
+        if self.user_token:
+            user_headers = {"Authorization": f"Bearer {self.user_token}"}
+            try:
+                # Try to delete with regular user token
+                response = self.session.delete(f"{self.base_url}/admin/courses/{course_id}", headers=user_headers)
+                
+                if response.status_code == 403:
+                    self.log_result("course_management", "Unauthorized Course Deletion", True, 
+                                  "Correctly prevented non-admin from deleting courses")
+                else:
+                    self.log_result("course_management", "Unauthorized Course Deletion", False, 
+                                  f"Should prevent non-admin deletion, got: {response.status_code}")
+            
+            except Exception as e:
+                self.log_result("course_management", "Unauthorized Course Deletion", False, f"Exception: {str(e)}")
+    
+    def test_course_statistics(self):
+        """Test course statistics endpoint"""
+        print("\n=== Testing Course Statistics ===")
+        
+        if not self.admin_token or not self.test_course_id:
+            self.log_result("course_management", "Course Statistics", False, 
+                          "No admin token or test course available")
+            return
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        
+        try:
+            response = self.session.get(f"{self.base_url}/admin/courses/{self.test_course_id}/details", headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check required fields
+                if "course" in data and "statistics" in data:
+                    course = data["course"]
+                    stats = data["statistics"]
+                    
+                    # Verify course data structure
+                    course_fields = ["id", "title", "description", "questions"]
+                    stats_fields = ["total_attempts", "total_payments", "questions_count", "created_at"]
+                    
+                    missing_course_fields = [f for f in course_fields if f not in course]
+                    missing_stats_fields = [f for f in stats_fields if f not in stats]
+                    
+                    if not missing_course_fields and not missing_stats_fields:
+                        self.log_result("course_management", "Course Statistics", True, 
+                                      f"Course details with statistics retrieved successfully. "
+                                      f"Attempts: {stats['total_attempts']}, "
+                                      f"Payments: {stats['total_payments']}, "
+                                      f"Questions: {stats['questions_count']}")
+                    else:
+                        missing_fields = missing_course_fields + missing_stats_fields
+                        self.log_result("course_management", "Course Statistics", False, 
+                                      f"Missing fields: {missing_fields}")
+                else:
+                    self.log_result("course_management", "Course Statistics", False, 
+                                  "Missing 'course' or 'statistics' in response")
+            else:
+                self.log_result("course_management", "Course Statistics", False, 
+                              f"Status: {response.status_code}, Response: {response.text}")
+        
+        except Exception as e:
+            self.log_result("course_management", "Course Statistics", False, f"Exception: {str(e)}")
+        
+        # Test statistics for non-existent course
+        try:
+            fake_course_id = "non-existent-course-id"
+            response = self.session.get(f"{self.base_url}/admin/courses/{fake_course_id}/details", headers=headers)
+            
+            if response.status_code == 404:
+                self.log_result("course_management", "Non-existent Course Statistics", True, 
+                              "Correctly returned 404 for non-existent course statistics")
+            else:
+                self.log_result("course_management", "Non-existent Course Statistics", False, 
+                              f"Should return 404 for non-existent course, got: {response.status_code}")
+        
+        except Exception as e:
+            self.log_result("course_management", "Non-existent Course Statistics", False, f"Exception: {str(e)}")
+    
+    def test_data_integrity(self):
+        """Test data integrity and cascading operations"""
+        print("\n=== Testing Data Integrity ===")
+        
+        # Test that deleted course is no longer accessible
+        if hasattr(self, 'enhanced_course_id') and self.enhanced_course_id:
+            course_id = self.enhanced_course_id
+            
+            # Try to access deleted course from public endpoint
+            try:
+                response = self.session.get(f"{self.base_url}/courses")
+                
+                if response.status_code == 200:
+                    courses = response.json()
+                    deleted_course_exists = any(course["id"] == course_id for course in courses)
+                    
+                    if not deleted_course_exists:
+                        self.log_result("database_operations", "Deleted Course Cleanup", True, 
+                                      "Deleted course no longer appears in course list")
+                    else:
+                        self.log_result("database_operations", "Deleted Course Cleanup", False, 
+                                      "Deleted course still appears in course list")
+                else:
+                    self.log_result("database_operations", "Deleted Course Cleanup", False, 
+                                  "Could not verify course list after deletion")
+            
+            except Exception as e:
+                self.log_result("database_operations", "Deleted Course Cleanup", False, f"Exception: {str(e)}")
+            
+            # Try to access deleted course details
+            if self.user_token:
+                headers = {"Authorization": f"Bearer {self.user_token}"}
+                try:
+                    response = self.session.get(f"{self.base_url}/courses/{course_id}", headers=headers)
+                    
+                    if response.status_code == 404:
+                        self.log_result("database_operations", "Deleted Course Access Prevention", True, 
+                                      "Correctly prevented access to deleted course details")
+                    else:
+                        self.log_result("database_operations", "Deleted Course Access Prevention", False, 
+                                      f"Should prevent access to deleted course, got: {response.status_code}")
+                
+                except Exception as e:
+                    self.log_result("database_operations", "Deleted Course Access Prevention", False, f"Exception: {str(e)}")
+    
     def test_database_operations(self):
         """Test database operations indirectly through API responses"""
         print("\n=== Testing Database Operations ===")
