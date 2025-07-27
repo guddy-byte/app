@@ -30,6 +30,7 @@ class CBTBackendTester:
         self.user_token = None
         self.admin_token = None
         self.test_course_id = None
+        self.enhanced_course_id = None  # For enhanced PDF parsing test course
         self.test_results = {
             "authentication": {"passed": 0, "failed": 0, "details": []},
             "course_management": {"passed": 0, "failed": 0, "details": []},
