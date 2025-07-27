@@ -302,6 +302,164 @@ def parse_numbered_format(text: str) -> List[Question]:
     
     return questions
 
+def parse_enhanced_structured_format(text: str) -> List[Question]:
+    """Enhanced structured format parsing with better pattern recognition"""
+    questions = []
+    
+    # Try multiple patterns for structured format
+    patterns = [
+        r'\n\d+\nQuestion\n',  # Original pattern
+        r'\n\d+\.\s*Question\s*\n',  # Numbered with dots
+        r'\nQuestion\s*\d+\s*\n',  # Question with number
+        r'\n\d+\)\s*',  # Numbered with parentheses
+    ]
+    
+    for pattern in patterns:
+        question_blocks = re.split(pattern, text, flags=re.IGNORECASE)
+        if len(question_blocks) > 1:
+            for block in question_blocks[1:]:
+                question = extract_question_from_block(block)
+                if question:
+                    questions.append(question)
+            break
+    
+    return questions
+
+def parse_multiline_questions(text: str) -> List[Question]:
+    """Parse questions that span multiple lines"""
+    questions = []
+    lines = text.split('\n')
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # Look for question indicators
+        if (re.match(r'^\d+[\.\)]\s*', line) or 
+            re.match(r'^Q\d*[\.\:]\s*', line, re.IGNORECASE) or
+            'question' in line.lower()):
+            
+            # Collect question text
+            question_text = re.sub(r'^\d+[\.\)]\s*|^Q\d*[\.\:]\s*', '', line, flags=re.IGNORECASE)
+            question_text = re.sub(r'question\s*\d*[\.\:]?\s*', '', question_text, flags=re.IGNORECASE)
+            
+            i += 1
+            # Continue collecting question text until we find options
+            while i < len(lines) and not re.match(r'^[A-D][\.\)]\s*', lines[i].strip()):
+                if lines[i].strip() and not lines[i].strip().lower().startswith('select'):
+                    question_text += ' ' + lines[i].strip()
+                i += 1
+            
+            # Collect options
+            options = []
+            while i < len(lines) and re.match(r'^[A-D][\.\)]\s*', lines[i].strip()):
+                option_text = re.sub(r'^[A-D][\.\)]\s*', '', lines[i].strip())
+                if option_text:
+                    options.append(option_text)
+                i += 1
+            
+            if question_text.strip() and len(options) >= 2:
+                questions.append(Question(
+                    question_text=question_text.strip(),
+                    options=options[:4],
+                    correct_answer=0
+                ))
+        else:
+            i += 1
+    
+    return questions
+
+def parse_continuous_text(text: str) -> List[Question]:
+    """Parse questions from continuous text without clear separators"""
+    questions = []
+    
+    # Look for question patterns in continuous text
+    # Pattern: Question followed by multiple choice options
+    question_pattern = r'([^.!?]*\?[^A-D]*?)([A-D][\.\)][^A-D]*[A-D][\.\)][^A-D]*(?:[A-D][\.\)][^A-D]*)?(?:[A-D][\.\)][^A-D]*)?)'
+    
+    matches = re.finditer(question_pattern, text, re.DOTALL)
+    
+    for match in matches:
+        question_text = match.group(1).strip()
+        options_text = match.group(2).strip()
+        
+        # Extract options
+        option_matches = re.findall(r'([A-D])[\.\)]([^A-D]*?)(?=[A-D][\.\)]|$)', options_text)
+        options = [opt[1].strip() for opt in option_matches if opt[1].strip()]
+        
+        if question_text and len(options) >= 2:
+            questions.append(Question(
+                question_text=question_text,
+                options=options[:4],
+                correct_answer=0
+            ))
+    
+    return questions
+
+def parse_page_by_page(pdf) -> List[Question]:
+    """Parse questions page by page for better context"""
+    questions = []
+    
+    for page_num, page in enumerate(pdf.pages):
+        page_text = page.extract_text()
+        if not page_text:
+            continue
+        
+        # Try different parsing methods on each page
+        page_questions = []
+        
+        # Method 1: Look for clear question markers
+        if re.search(r'\d+[\.\)]\s*[^0-9]', page_text):
+            page_questions.extend(parse_multiline_questions(page_text))
+        
+        # Method 2: Look for Q: patterns
+        if re.search(r'Q\d*[\.\:]', page_text, re.IGNORECASE):
+            page_questions.extend(parse_simple_format(page_text))
+        
+        # Method 3: Look for structured format
+        if 'Question' in page_text:
+            page_questions.extend(parse_structured_format(page_text))
+        
+        questions.extend(page_questions)
+    
+    return questions
+
+def extract_question_from_block(block: str) -> Optional[Question]:
+    """Extract a single question from a text block"""
+    lines = [line.strip() for line in block.strip().split('\n') if line.strip()]
+    
+    if not lines:
+        return None
+    
+    question_text = ''
+    options = []
+    collecting_question = True
+    
+    for line in lines:
+        # Skip metadata lines
+        if any(skip in line.lower() for skip in ['mark', 'out of', 'http://', 'page', 'time']):
+            continue
+        
+        # Check for option markers
+        if re.match(r'^[A-D][\.\)]\s*', line):
+            collecting_question = False
+            option_text = re.sub(r'^[A-D][\.\)]\s*', '', line)
+            if option_text:
+                options.append(option_text)
+        elif collecting_question and line and line != 'Select one:':
+            question_text += line + ' '
+    
+    question_text = question_text.strip()
+    
+    if question_text and len(options) >= 2:
+        return Question(
+            question_text=question_text,
+            options=options[:4],
+            correct_answer=0
+        )
+    
+    return None
+
 # Routes
 
 # Authentication Routes
