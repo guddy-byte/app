@@ -772,6 +772,65 @@ async def update_question(
     
     return {"message": "Question updated successfully"}
 
+@api_router.delete("/admin/courses/{course_id}")
+async def delete_course(
+    course_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete a course and all associated data"""
+    # Check if course exists
+    course = await db.courses.find_one({"id": course_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    try:
+        # Delete associated test attempts
+        attempts_deleted = await db.test_attempts.delete_many({"course_id": course_id})
+        
+        # Delete associated payment transactions
+        payments_deleted = await db.payments.delete_many({"course_id": course_id})
+        
+        # Delete the course itself
+        result = await db.courses.delete_one({"id": course_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Course not found")
+        
+        return {
+            "message": "Course deleted successfully",
+            "course_title": course["title"],
+            "attempts_deleted": attempts_deleted.deleted_count,
+            "payments_deleted": payments_deleted.deleted_count
+        }
+        
+    except Exception as e:
+        print(f"Error deleting course: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete course")
+
+@api_router.get("/admin/courses/{course_id}/details")
+async def get_course_admin_details(
+    course_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Get detailed course information for admin"""
+    course = await db.courses.find_one({"id": course_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get statistics
+    attempts_count = await db.test_attempts.count_documents({"course_id": course_id})
+    payments_count = await db.payments.count_documents({"course_id": course_id, "status": "completed"})
+    
+    return {
+        "course": Course(**course),
+        "statistics": {
+            "total_attempts": attempts_count,
+            "total_payments": payments_count,
+            "questions_count": len(course["questions"]),
+            "created_at": course["created_at"]
+        }
+    }
+
 # Public Course Routes
 @api_router.get("/courses")
 async def get_courses():

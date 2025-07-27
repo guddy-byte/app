@@ -56,7 +56,8 @@ const LandingPage = ({ onShowLogin, onShowRegister }) => {
         {/* Logo and Title */}
         <div className="mb-8">
           <div className="w-32 h-32 mx-auto mb-6 bg-white rounded-full flex items-center justify-center shadow-2xl">
-            <div className="text-4xl font-bold text-red-800">CBT</div>
+            {/* <div className="text-4xl font-bold text-red-800">CBT</div> */}
+            <img src="src/assets/logo_1.png" className="w-8 h-8" />
           </div>
           <h1 className="text-5xl font-bold text-white mb-4">CBT Learning Platform</h1>
           <p className="text-xl text-red-100 mb-8">
@@ -172,9 +173,9 @@ const LoginForm = ({ onBack, onSuccess }) => {
           </button>
         </form>
 
-        <div className="mt-4 text-center">
+        {/* <div className="mt-4 text-center">
           <p className="text-gray-600 text-sm mb-2">Admin Login: Username: Admin, Password: Admin@01</p>
-        </div>
+        </div> */}
 
         <div className="mt-6 text-center">
           <button
