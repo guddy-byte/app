@@ -37,8 +37,8 @@ api_router = APIRouter(prefix="/api")
 # Add this CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://app-swart-three.vercel.app", 
+    allow_origins = [
+       "https://app-ex8x.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
