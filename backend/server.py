@@ -45,6 +45,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {"message": "Welcome to the API"}
+
 # ✅ Define routes using `api_router`
 @api_router.post("/auth/login")
 async def login(payload: dict):
