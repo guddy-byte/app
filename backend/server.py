@@ -17,6 +17,9 @@ import re
 import base64
 from io import BytesIO
 import json
+import hashlib
+import hmac
+from typing import Optional
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
