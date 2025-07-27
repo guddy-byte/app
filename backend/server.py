@@ -39,6 +39,7 @@ app.add_middleware(
     allow_origins=[
         "https://app-ex8x.onrender.com",
         "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",
+        "https://app-swart-three.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
