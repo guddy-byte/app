@@ -135,9 +135,9 @@ async def get_admin_user(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
-# PDF Parser Function
+# Enhanced PDF Parser Function
 def parse_pdf_to_questions(pdf_content: bytes) -> List[Question]:
-    """Parse PDF content and extract questions"""
+    """Parse PDF content and extract questions using multiple enhanced methods"""
     questions = []
     
     try:
@@ -151,23 +151,59 @@ def parse_pdf_to_questions(pdf_content: bytes) -> List[Question]:
                 if page_text:
                     text += page_text + '\n'
         
-        # Method 1: Try to parse structured format (like the sample)
-        questions_method1 = parse_structured_format(text)
+        print(f"PDF Analysis: Total pages: {len(pdf.pages)}, Total text length: {len(text)}")
+        
+        # Try multiple parsing methods and combine results
+        all_questions = []
+        
+        # Method 1: Enhanced structured format parsing
+        questions_method1 = parse_enhanced_structured_format(text)
         if questions_method1:
-            return questions_method1
+            all_questions.extend(questions_method1)
+            print(f"Method 1 (Enhanced Structured): Found {len(questions_method1)} questions")
         
-        # Method 2: Try to parse simple Q&A format
-        questions_method2 = parse_simple_format(text)
+        # Method 2: Multi-line question parsing
+        questions_method2 = parse_multiline_questions(text)
         if questions_method2:
-            return questions_method2
+            all_questions.extend(questions_method2)
+            print(f"Method 2 (Multi-line): Found {len(questions_method2)} questions")
         
-        # Method 3: Try to parse numbered questions
-        questions_method3 = parse_numbered_format(text)
-        return questions_method3
+        # Method 3: Continuous text parsing
+        questions_method3 = parse_continuous_text(text)
+        if questions_method3:
+            all_questions.extend(questions_method3)
+            print(f"Method 3 (Continuous): Found {len(questions_method3)} questions")
+        
+        # Method 4: Page-by-page parsing
+        questions_method4 = parse_page_by_page(pdf)
+        if questions_method4:
+            all_questions.extend(questions_method4)
+            print(f"Method 4 (Page-by-page): Found {len(questions_method4)} questions")
+        
+        # Remove duplicates based on question text similarity
+        unique_questions = remove_duplicate_questions(all_questions)
+        print(f"Total unique questions after deduplication: {len(unique_questions)}")
+        
+        return unique_questions
         
     except Exception as e:
         print(f"Error parsing PDF: {e}")
         return []
+
+def remove_duplicate_questions(questions: List[Question]) -> List[Question]:
+    """Remove duplicate questions based on text similarity"""
+    unique_questions = []
+    seen_questions = set()
+    
+    for question in questions:
+        # Create a normalized version for comparison
+        normalized = question.question_text.lower().strip()[:100]  # First 100 chars
+        
+        if normalized not in seen_questions:
+            seen_questions.add(normalized)
+            unique_questions.append(question)
+    
+    return unique_questions
 
 def parse_structured_format(text: str) -> List[Question]:
     """Parse structured format like the GST104 sample"""
