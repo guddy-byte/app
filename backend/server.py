@@ -363,6 +363,65 @@ def parse_enhanced_structured_format(text: str) -> List[Question]:
                     questions.append(question)
             break
     
+    # If no questions found with above patterns, try GST104 specific format
+    if not questions:
+        questions = parse_gst104_format(text)
+    
+    return questions
+
+def parse_gst104_format(text: str) -> List[Question]:
+    """Parse GST104 specific format"""
+    questions = []
+    
+    # Split by question numbers followed by "Question"
+    question_blocks = re.split(r'\n(\d+)\nQuestion\n', text)
+    
+    for i in range(1, len(question_blocks), 2):
+        if i + 1 < len(question_blocks):
+            question_num = question_blocks[i]
+            question_content = question_blocks[i + 1]
+            
+            try:
+                lines = [line.strip() for line in question_content.split('\n') if line.strip()]
+                
+                # Find question text (after "Mark" line, before "Select one:")
+                question_text = ''
+                options = []
+                collecting_question = False
+                collecting_options = False
+                
+                for line in lines:
+                    if 'Mark' in line and 'out of' in line:
+                        collecting_question = True
+                        continue
+                    
+                    if line == 'Select one:':
+                        collecting_question = False
+                        collecting_options = True
+                        continue
+                    
+                    if collecting_question and line and not line.startswith('http://'):
+                        question_text += line + ' '
+                    
+                    if collecting_options and line and not line.startswith('http://') and not line.startswith('4/'):
+                        # Stop collecting if we hit the next question or page info
+                        if re.match(r'^\d+$', line) or 'Question' in line:
+                            break
+                        if len(options) < 4:
+                            options.append(line)
+                
+                question_text = question_text.strip()
+                
+                if question_text and len(options) >= 2:
+                    questions.append(Question(
+                        question_text=question_text,
+                        options=options[:4],
+                        correct_answer=0  # Default to first option
+                    ))
+                    
+            except Exception as e:
+                continue
+    
     return questions
 
 def parse_multiline_questions(text: str) -> List[Question]:
