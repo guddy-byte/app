@@ -787,6 +787,9 @@ const TestInterface = ({ course, onBack }) => {
 // Admin Panel Component
 const AdminPanel = ({ onCourseCreated }) => {
   const [showUpload, setShowUpload] = useState(false);
+  const [showCourses, setShowCourses] = useState(false);
+  const [adminCourses, setAdminCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [uploadData, setUploadData] = useState({
     title: '',
     description: '',
@@ -796,6 +799,18 @@ const AdminPanel = ({ onCourseCreated }) => {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+
+  const fetchAdminCourses = async () => {
+    setLoadingCourses(true);
+    try {
+      const response = await axios.get(`${API}/admin/courses`);
+      setAdminCourses(response.data);
+    } catch (error) {
+      console.error('Error fetching admin courses:', error);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -825,6 +840,9 @@ const AdminPanel = ({ onCourseCreated }) => {
         pdf_file: null
       });
       onCourseCreated();
+      if (showCourses) {
+        fetchAdminCourses();
+      }
     } catch (error) {
       alert('Upload failed: ' + (error.response?.data?.detail || 'Unknown error'));
     } finally {
@@ -832,16 +850,58 @@ const AdminPanel = ({ onCourseCreated }) => {
     }
   };
 
+  const handleDeleteCourse = async (courseId, courseTitle) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the course "${courseTitle}"?\n\n` +
+      `This will permanently delete:\n` +
+      `• The course and all its questions\n` +
+      `• All student test attempts\n` +
+      `• All payment records\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await axios.delete(`${API}/admin/courses/${courseId}`);
+      alert(`Course "${response.data.course_title}" deleted successfully!\n` +
+            `Deleted ${response.data.attempts_deleted} test attempts and ${response.data.payments_deleted} payment records.`);
+      
+      // Refresh courses list
+      fetchAdminCourses();
+      onCourseCreated(); // Refresh main dashboard
+    } catch (error) {
+      alert('Delete failed: ' + (error.response?.data?.detail || 'Unknown error'));
+    }
+  };
+
   return (
     <div className="bg-red-100 rounded-lg p-6 mb-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-red-800">Admin Panel</h2>
-        <button
-          onClick={() => setShowUpload(!showUpload)}
-          className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900"
-        >
-          {showUpload ? 'Hide Upload' : 'Upload New Course'}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => {
+              setShowUpload(!showUpload);
+              setShowCourses(false);
+            }}
+            className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900"
+          >
+            {showUpload ? 'Hide Upload' : 'Upload New Course'}
+          </button>
+          <button
+            onClick={() => {
+              setShowCourses(!showCourses);
+              setShowUpload(false);
+              if (!showCourses) {
+                fetchAdminCourses();
+              }
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            {showCourses ? 'Hide Courses' : 'Manage Courses'}
+          </button>
+        </div>
       </div>
 
       {uploadResult && (
@@ -851,7 +911,9 @@ const AdminPanel = ({ onCourseCreated }) => {
       )}
 
       {showUpload && (
-        <form onSubmit={handleUpload} className="bg-white rounded-lg p-6">
+        <form onSubmit={handleUpload} className="bg-white rounded-lg p-6 mb-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Upload New Course</h3>
+          
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-gray-700 font-semibold mb-2">Course Title</label>
@@ -920,6 +982,56 @@ const AdminPanel = ({ onCourseCreated }) => {
             {uploading ? 'Uploading...' : 'Upload Course'}
           </button>
         </form>
+      )}
+
+      {showCourses && (
+        <div className="bg-white rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Manage Courses</h3>
+          
+          {loadingCourses ? (
+            <div className="text-center py-4">
+              <div className="text-gray-600">Loading courses...</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {adminCourses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No courses uploaded yet.
+                </div>
+              ) : (
+                adminCourses.map((course) => (
+                  <div key={course.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h4 className="font-semibold text-gray-800">{course.title}</h4>
+                          {course.is_free ? (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">FREE</span>
+                          ) : (
+                            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">₦{course.price}</span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">{course.description}</p>
+                        <div className="flex space-x-4 text-xs text-gray-500">
+                          <span>{course.total_questions} questions</span>
+                          <span>Created: {new Date(course.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        <button
+                          onClick={() => handleDeleteCourse(course.id, course.title)}
+                          className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
