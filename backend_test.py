@@ -826,6 +826,7 @@ class CBTBackendTester:
         
         # Course Management Tests
         self.test_pdf_upload_and_parsing()
+        self.test_enhanced_pdf_parsing()  # New enhanced PDF parsing test
         self.test_course_creation()
         
         # Course Access Tests
@@ -836,6 +837,11 @@ class CBTBackendTester:
         # CBT System Tests
         self.test_cbt_test_submission()
         self.test_user_attempts_retrieval()
+        
+        # New Enhanced Features Tests
+        self.test_course_statistics()  # New course statistics test
+        self.test_course_deletion_system()  # New course deletion test
+        self.test_data_integrity()  # New data integrity test
         
         # Database Operations Tests
         self.test_database_operations()
