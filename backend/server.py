@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -32,6 +33,20 @@ db = client[os.environ['DB_NAME']]
 # Create the main app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+# CORS middleware setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",  # Your Vercel frontend URL
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ... define routes and include router
+app.include_router(api_router)
 
 # Security
 security = HTTPBearer()
