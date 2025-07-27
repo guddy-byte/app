@@ -49,6 +49,10 @@ app.add_middleware(
 def root():
     return {"message": "Welcome to the API"}
 
+@app.get("/test")
+def test_cors():
+    return {"status": "CORS working"}
+
 # ✅ Define routes using `api_router`
 @api_router.post("/auth/login")
 async def login(payload: dict):
