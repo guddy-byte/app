@@ -30,26 +30,28 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app
 app = FastAPI()
+api_router = APIRouter()
 
-# Add this CORS config
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://app-ex8x.onrender.com",  # ✅ Your new frontend domain
-        "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",  # ✅ Any old domain if still used
+        "https://app-ex8x.onrender.com",
+        "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Define routes directly on `app`
-@app.post("/api/auth/login")
+# ✅ Define routes using `api_router`
+@api_router.post("/auth/login")
 async def login(payload: dict):
-    # your login logic here
-    return {"message": "Login route working"}
+    return {"message": "Login working"}
+
+# ✅ Then include the router
+app.include_router(api_router, prefix="/api")
 
 # Security
 security = HTTPBearer()
