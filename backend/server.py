@@ -32,21 +32,24 @@ db = client[os.environ['DB_NAME']]
 
 # Create the main app
 app = FastAPI()
-api_router = APIRouter(prefix="/api")
 
 # Add this CORS config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = [
-       "https://app-ex8x.onrender.com",
+    allow_origins=[
+        "https://app-ex8x.onrender.com",  # ✅ Your new frontend domain
+        "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",  # ✅ Any old domain if still used
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Add your routes after middleware
-app.include_router(api_router)
+# Define routes directly on `app`
+@app.post("/api/auth/login")
+async def login(payload: dict):
+    # your login logic here
+    return {"message": "Login route working"}
 
 # Security
 security = HTTPBearer()
