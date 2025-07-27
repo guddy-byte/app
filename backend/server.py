@@ -34,18 +34,18 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# CORS middleware setup
+# Add this CORS config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",  # Your Vercel frontend URL
+        "https://app-swart-three.vercel.app", 
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ... define routes and include router
+# ✅ Add your routes after middleware
 app.include_router(api_router)
 
 # Security
