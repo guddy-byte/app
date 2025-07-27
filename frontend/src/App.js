@@ -57,7 +57,7 @@ const LandingPage = ({ onShowLogin, onShowRegister }) => {
         <div className="mb-8">
           <div className="w-32 h-32 mx-auto mb-6 bg-white rounded-full flex items-center justify-center shadow-2xl">
             {/* <div className="text-4xl font-bold text-red-800">CBT</div> */}
-            <img src="src/assets/logo_1.png" className="w-8 h-8" />
+            <img src="src/assets/images/logo_1.png" className="w-8 h-8" />
           </div>
           <h1 className="text-5xl font-bold text-white mb-4">CBT Learning Platform</h1>
           <p className="text-xl text-red-100 mb-8">
