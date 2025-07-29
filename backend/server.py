@@ -39,6 +39,7 @@ app.add_middleware(
     allow_origins=[
         "https://app-ex8x.onrender.com",
         "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",
+        "https://app-swart-three.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -48,6 +49,10 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Welcome to the API"}
+
+@app.get("/test")
+def test_cors():
+    return {"status": "CORS working"}
 
 # ✅ Define routes using `api_router`
 @api_router.post("/auth/login")
