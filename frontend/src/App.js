@@ -5,7 +5,7 @@ import logo from "./assets/images/logo_2.png"
 
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}`;
+const API = `${BACKEND_URL}/api`;
 
 // Auth Context
 const AuthContext = createContext();

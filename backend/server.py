@@ -59,6 +59,10 @@ def test_cors():
 async def login(payload: dict):
     return {"message": "Login working"}
 
+@api_router.post("/auth/register")
+async def register(payload: dict):
+    return {"message": "Register working"}
+
 # ✅ Then include the router
 app.include_router(api_router, prefix="/api")
 
