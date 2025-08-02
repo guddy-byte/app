@@ -56,9 +56,13 @@ def root():
 def test_cors():
     return {"status": "CORS working"}
 
+class LoginPayload(BaseModel):
+    email: EmailStr
+    password: str
+
 # Define routes using `api_router`
 @api_router.post("/auth/login")
-async def login(payload: dict):
+async def login(payload: LoginPayload):
     return {"message": "Login working"}
 
 # Define Pydantic model for /auth/register
