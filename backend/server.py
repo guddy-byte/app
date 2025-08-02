@@ -2,7 +2,6 @@ from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, D
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -21,6 +20,7 @@ import json
 import hashlib
 import hmac
 from typing import Optional
+from pydantic import BaseModel, EmailStr
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -54,16 +54,24 @@ def root():
 def test_cors():
     return {"status": "CORS working"}
 
-# ✅ Define routes using `api_router`
+# Define routes using `api_router`
 @api_router.post("/auth/login")
 async def login(payload: dict):
     return {"message": "Login working"}
 
+# Define Pydantic model for /auth/register
+class RegisterPayload(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    phone: str
+
+# Use it in the route
 @api_router.post("/auth/register")
-async def register(payload: dict):
+async def register(payload: RegisterPayload):
     return {"message": "Register working"}
 
-# ✅ Then include the router
+# Then include the router
 app.include_router(api_router, prefix="/api")
 
 # Security
