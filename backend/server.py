@@ -40,8 +40,7 @@ app.add_middleware(
         "https://app-ex8x.onrender.com",
         "https://app-noozue1hv-idowugudness01-8172s-projects.vercel.app",
         "https://app-swart-three.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:3001",
+        "http://localhost:3000",  # Local development
     ],
     allow_credentials=True,
     allow_methods=["*"],
