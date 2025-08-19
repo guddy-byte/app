@@ -1077,21 +1077,19 @@ async def get_user_attempts(current_user: User = Depends(get_current_user)):
     return result
 
 # Payment Routes (Paystack Integration)
+import requests  # Add at the top if not present
+
 @api_router.post("/payments/initialize")
 async def initialize_payment(
     course_id: str,
     current_user: User = Depends(get_current_user)
 ):
     """Initialize Paystack payment for a course"""
-    # Get course
     course = await db.courses.find_one({"id": course_id})
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    
     if course["is_free"]:
         raise HTTPException(status_code=400, detail="This course is free")
-    
-    # Check if user already has access
     existing_payment = await db.payments.find_one({
         "user_id": current_user.id,
         "course_id": course_id,
@@ -1099,14 +1097,8 @@ async def initialize_payment(
     })
     if existing_payment:
         raise HTTPException(status_code=400, detail="You already have access to this course")
-    
-    # Convert price to kobo (Paystack uses kobo for NGN)
     amount_in_kobo = int(course["price"] * 100)
-    
-    # Generate reference
     reference = f"CBT_{course_id}_{current_user.id}_{uuid.uuid4().hex[:8]}"
-    
-    # Create payment transaction record
     transaction = PaymentTransaction(
         user_id=current_user.id,
         course_id=course_id,
@@ -1114,84 +1106,72 @@ async def initialize_payment(
         paystack_reference=reference,
         status="pending"
     )
-    
     await db.payments.insert_one(transaction.dict())
-    
-    # In production, you would initialize with Paystack here
-    # paystack_secret = os.environ.get('PAYSTACK_SECRET_KEY')
-    # if not paystack_secret:
-    #     raise HTTPException(status_code=500, detail="Payment configuration error")
-    
-    # Mock Paystack initialization response
-    # TODO: Replace with actual Paystack API call
-    # url = "https://api.paystack.co/transaction/initialize"
-    # headers = {
-    #     "Authorization": f"Bearer {paystack_secret}",
-    #     "Content-Type": "application/json"
-    # }
-    # data = {
-    #     "email": current_user.email,
-    #     "amount": amount_in_kobo,
-    #     "currency": "NGN",
-    #     "reference": reference,
-    #     "callback_url": f"{request.base_url}api/payments/callback"
-    # }
-    # response = requests.post(url, json=data, headers=headers)
-    
-    # For now, return mock payment URL structure
-    return {
-        "status": "success",
-        "message": "Payment initialized",
-        "data": {
-            "authorization_url": f"https://checkout.paystack.com/{reference}",
-            "access_code": f"access_code_{reference}",
-            "reference": reference
-        }
+    paystack_secret = os.environ.get('PAYSTACK_SECRET_KEY')
+    if not paystack_secret:
+        raise HTTPException(status_code=500, detail="Payment configuration error")
+    url = "https://api.paystack.co/transaction/initialize"
+    headers = {
+        "Authorization": f"Bearer {paystack_secret}",
+        "Content-Type": "application/json"
     }
+    data = {
+        "email": current_user.email,
+        "amount": amount_in_kobo,
+        "currency": "NGN",
+        "reference": reference,
+        # You can set your real callback URL here
+        # "callback_url": "https://your-frontend-url.com/payment/callback"
+    }
+    try:
+        response = requests.post(url, json=data, headers=headers, timeout=10)
+        resp_data = response.json()
+        if not resp_data.get("status"):
+            raise HTTPException(status_code=500, detail=resp_data.get("message", "Paystack error"))
+        return resp_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Paystack error: {str(e)}")
 
 @api_router.post("/payments/verify/{reference}")
 async def verify_payment(reference: str):
     """Verify Paystack payment"""
-    # Find payment transaction
     payment = await db.payments.find_one({"paystack_reference": reference})
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
-    
-    # In production, verify with Paystack
-    # paystack_secret = os.environ.get('PAYSTACK_SECRET_KEY')
-    # url = f"https://api.paystack.co/transaction/verify/{reference}"
-    # headers = {"Authorization": f"Bearer {paystack_secret}"}
-    # response = requests.get(url, headers=headers)
-    # verification_data = response.json()
-    
-    # Mock verification for demo (in production, use actual Paystack response)
-    verification_success = True  # This would come from Paystack API
-    
-    if verification_success:
-        # Update payment status
-        await db.payments.update_one(
-            {"paystack_reference": reference},
-            {"$set": {"status": "completed"}}
-        )
-        
-        return {
-            "status": "success",
-            "message": "Payment verified successfully",
-            "data": {
-                "reference": reference,
-                "status": "completed"
+    paystack_secret = os.environ.get('PAYSTACK_SECRET_KEY')
+    url = f"https://api.paystack.co/transaction/verify/{reference}"
+    headers = {"Authorization": f"Bearer {paystack_secret}"}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        verification_data = response.json()
+        if verification_data.get("status") and verification_data.get("data", {}).get("status") == "success":
+            await db.payments.update_one(
+                {"paystack_reference": reference},
+                {"$set": {"status": "completed"}}
+            )
+            return {
+                "status": "success",
+                "message": "Payment verified successfully",
+                "data": {
+                    "reference": reference,
+                    "status": "completed"
+                }
             }
-        }
-    else:
+        else:
+            await db.payments.update_one(
+                {"paystack_reference": reference},
+                {"$set": {"status": "failed"}}
+            )
+            return {
+                "status": "failed",
+                "message": verification_data.get("message", "Payment verification failed")
+            }
+    except Exception as e:
         await db.payments.update_one(
             {"paystack_reference": reference},
             {"$set": {"status": "failed"}}
         )
-        
-        return {
-            "status": "failed",
-            "message": "Payment verification failed"
-        }
+        raise HTTPException(status_code=500, detail=f"Paystack verification error: {str(e)}")
 
 @api_router.post("/payments/webhook")
 async def paystack_webhook(request: Request):
