@@ -19,7 +19,6 @@ import base64
 from io import BytesIO
 import json
 import hashlib
-import httpx
 import requests
 import hmac
 from typing import Optional
