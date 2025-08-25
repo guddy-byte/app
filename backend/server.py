@@ -19,7 +19,6 @@ import base64
 from io import BytesIO
 import json
 import hashlib
-import requests
 import hmac
 from typing import Optional
 from pydantic import BaseModel, EmailStr
@@ -1081,16 +1080,11 @@ async def get_user_attempts(current_user: User = Depends(get_current_user)):
 # Payment Routes (Paystack Integration)
 import requests  # Add at the top if not present
 
-
 @api_router.post("/payments/initialize")
 async def initialize_payment(
     course_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=data, headers=headers, timeout=10)
-        resp_data = response.json()
-
     """Initialize Paystack payment for a course"""
     course = await db.courses.find_one({"id": course_id})
     if not course:
