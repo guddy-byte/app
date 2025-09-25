@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+paystack_secret = os.environ.get("PAYSTACK_SECRET_KEY")
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
