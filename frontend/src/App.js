@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, createContext } from "react";
 import "./App.css";
 import axios from "axios";
 import logo from "./assets/images/logo_2.png"
+import { PaystackButton } from 'react-paystack';
 
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -501,82 +502,74 @@ const CourseCard = ({ course }) => {
 // Payment Integration Component
 const PaymentInterface = ({ course, onPaymentSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const publicKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY;
+  const amount = course.price * 100; // Paystack expects amount in kobo
+  const email = user?.email || "customer@example.com";
 
-  const handlePayment = async () => {
-    setLoading(true);
-    try {
-      // Initialize payment with backend
-      const response = await axios.post(`${API}/payments/initialize`, {
-        course_id: course.id
-      });
+  const [reference, setReference] = useState("");
+  const [paystackReady, setPaystackReady] = useState(false);
 
-      if (response.data.status === 'success') {
-        // In production, you would use actual Paystack popup here
-        // For now, simulate payment process
-        
-        // Mock payment flow - replace with actual Paystack integration
-        const paymentResult = await simulatePaystackPayment(response.data.data);
-        
-        if (paymentResult.status === 'success') {
-          // Verify payment with backend
-          const verifyResponse = await axios.post(
-            `${API}/payments/verify/${response.data.data.reference}`
-          );
-          
-          if (verifyResponse.data.status === 'success') {
-            onPaymentSuccess();
-          }
+  useEffect(() => {
+    // Initialize payment with backend to get reference
+    const initPayment = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.post(`${API}/payments/initialize`, {
+          course_id: course.id
+        });
+        if (response.data.status === 'success') {
+          setReference(response.data.data.reference);
+          setPaystackReady(true);
+        } else {
+          alert('Payment initialization failed');
         }
+      } catch (error) {
+        alert('Payment failed: ' + (error.response?.data?.detail || 'Unknown error'));
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      alert('Payment failed: ' + (error.response?.data?.detail || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    initPayment();
+  }, [course.id]);
 
-  // Mock Paystack payment simulation (replace with actual Paystack in production)
-  const simulatePaystackPayment = async (paymentData) => {
-    return new Promise((resolve) => {
-      // Simulate payment processing time
-      setTimeout(() => {
-        resolve({ status: 'success', reference: paymentData.reference });
-      }, 2000);
-    });
+  const paystackProps = {
+    email,
+    amount,
+    publicKey,
+    reference,
+    text: loading ? 'Processing...' : 'Pay with Paystack',
+    onSuccess: async (ref) => {
+      // Verify payment with backend
+      try {
+        const verifyResponse = await axios.post(
+          `${API}/payments/verify/${ref.reference}`
+        );
+        if (verifyResponse.data.status === 'success') {
+          onPaymentSuccess();
+        } else {
+          alert('Payment verification failed');
+        }
+      } catch (error) {
+        alert('Payment verification failed');
+      }
+    },
+    onClose: onCancel,
+    disabled: loading || !paystackReady,
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
         <h3 className="text-2xl font-bold text-red-800 mb-4">Complete Payment</h3>
-        
         <div className="mb-6">
           <h4 className="font-semibold text-gray-800">{course.title}</h4>
           <p className="text-gray-600 text-sm mb-2">{course.description}</p>
           <div className="text-3xl font-bold text-red-800">₦{course.price}</div>
           <p className="text-sm text-gray-500">Nigerian Naira (NGN)</p>
         </div>
-
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start">
-            <div className="text-yellow-600 mr-2">⚠️</div>
-            <div>
-              <p className="text-sm text-yellow-800">
-                <strong>Payment Integration Note:</strong> This is the payment structure ready for Paystack integration. 
-                Add your Paystack public key to enable actual payments.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="flex space-x-4">
-          <button
-            onClick={handlePayment}
-            disabled={loading}
-            className="flex-1 bg-red-800 text-white py-3 px-4 rounded-lg hover:bg-red-900 disabled:opacity-50 font-semibold"
-          >
-            {loading ? 'Processing...' : 'Pay with Paystack'}
-          </button>
+          <PaystackButton {...paystackProps} className="flex-1 bg-red-800 text-white py-3 px-4 rounded-lg hover:bg-red-900 disabled:opacity-50 font-semibold" />
           <button
             onClick={onCancel}
             disabled={loading}
@@ -585,7 +578,6 @@ const PaymentInterface = ({ course, onPaymentSuccess, onCancel }) => {
             Cancel
           </button>
         </div>
-
         <div className="mt-4 text-xs text-gray-500 text-center">
           Powered by Paystack • Secure • Encrypted
         </div>
